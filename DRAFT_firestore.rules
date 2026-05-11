@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Users ---
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'photoURL', 'height', 'weight', 'goal', 'trainingTime']);
+      
+      function isValidUser(data) {
+        return data.keys().hasAll(['id', 'email']) && 
+               data.id == request.auth.uid &&
+               data.email is string && data.email.size() <= 256;
+      }
+    }
+
+    // --- Workouts ---
+    match /workouts/{workoutId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidWorkout(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidWorkout(incoming());
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      function isValidWorkout(data) {
+        return data.userId == request.auth.uid &&
+               data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+               data.type in ['A', 'B', 'C', 'D', 'Upper', 'Lower', 'Push', 'Pull', 'Legs', 'Full Body'];
+      }
+
+      match /exercises/{exerciseId} {
+        allow list, get: if isSignedIn() && get(/databases/$(database)/documents/workouts/$(workoutId)).data.userId == request.auth.uid;
+        allow create: if isSignedIn() && get(/databases/$(database)/documents/workouts/$(workoutId)).data.userId == request.auth.uid && isValidExercise(incoming());
+        allow update: if isSignedIn() && get(/databases/$(database)/documents/workouts/$(workoutId)).data.userId == request.auth.uid && isValidExercise(incoming());
+        allow delete: if isSignedIn() && get(/databases/$(database)/documents/workouts/$(workoutId)).data.userId == request.auth.uid;
+
+        function isValidExercise(data) {
+          return data.name is string && data.name.size() > 0 && data.name.size() <= 100;
+        }
+      }
+    }
+
+    // --- Logs ---
+    match /logs/{logId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidLog(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidLog(incoming());
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      function isValidLog(data) {
+        return data.userId == request.auth.uid && data.startedAt is timestamp;
+      }
+
+      match /sets/{setId} {
+        allow list, get: if isSignedIn() && get(/databases/$(database)/documents/logs/$(logId)).data.userId == request.auth.uid;
+        allow create: if isSignedIn() && get(/databases/$(database)/documents/logs/$(logId)).data.userId == request.auth.uid && isValidSet(incoming());
+        allow update: if isSignedIn() && get(/databases/$(database)/documents/logs/$(logId)).data.userId == request.auth.uid && isValidSet(incoming());
+        allow delete: if isSignedIn() && get(/databases/$(database)/documents/logs/$(logId)).data.userId == request.auth.uid;
+
+        function isValidSet(data) {
+          return data.weight is number && data.reps is int;
+        }
+      }
+    }
+
+    // --- PRs ---
+    match /prs/{prId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidPR(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidPR(incoming());
+
+      function isValidPR(data) {
+        return data.userId == request.auth.uid && data.exerciseId is string;
+      }
+    }
+  }
+}

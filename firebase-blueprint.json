@@ -1,0 +1,131 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user profile and physical metrics.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "height": { "type": "number", "description": "Height in cm" },
+        "weight": { "type": "number", "description": "Current weight in kg" },
+        "goal": { "type": "string", "description": "e.g., Hypertrophy, Strength, Weight Loss" },
+        "trainingTime": { "type": "string", "description": "Experience level" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email"]
+    },
+    "Workout": {
+      "title": "Workout Routine",
+      "description": "A collection of exercises defined as a routine.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["A", "B", "C", "D", "Upper", "Lower", "Push", "Pull", "Legs", "Full Body"] },
+        "lastPerformedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name"]
+    },
+    "WorkoutExercise": {
+      "title": "Workout Exercise",
+      "description": "An exercise within a workout routine.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "workoutId": { "type": "string" },
+        "exerciseId": { "type": "string" },
+        "name": { "type": "string" },
+        "targetSets": { "type": "integer" },
+        "targetReps": { "type": "string", "description": "e.g., '8-12'" },
+        "suggestedWeight": { "type": "number" },
+        "restSeconds": { "type": "integer" },
+        "notes": { "type": "string" },
+        "order": { "type": "integer" }
+      },
+      "required": ["workoutId", "exerciseId", "name"]
+    },
+    "WorkoutLog": {
+      "title": "Workout Log",
+      "description": "A recorded instance of a workout session.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "workoutId": { "type": "string" },
+        "workoutName": { "type": "string" },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "endedAt": { "type": "string", "format": "date-time" },
+        "totalVolume": { "type": "number" },
+        "durationSeconds": { "type": "integer" }
+      },
+      "required": ["userId", "startedAt"]
+    },
+    "SetLog": {
+      "title": "Set Log",
+      "description": "A record of a single set performed during a workout.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "logId": { "type": "string" },
+        "userId": { "type": "string" },
+        "exerciseId": { "type": "string" },
+        "exerciseName": { "type": "string" },
+        "weight": { "type": "number" },
+        "reps": { "type": "integer" },
+        "type": { "type": "string", "enum": ["A", "P", "V"] },
+        "volume": { "type": "number" },
+        "setNumber": { "type": "integer" },
+        "restTaken": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["logId", "userId", "exerciseId", "weight", "reps"]
+    },
+    "PersonalRecord": {
+      "title": "Personal Record",
+      "description": "Stores the user's best performance for a specific exercise.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "exerciseId": { "type": "string" },
+        "exerciseName": { "type": "string" },
+        "maxWeight": { "type": "number" },
+        "maxVolume": { "type": "number" },
+        "maxReps": { "type": "integer" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "exerciseId"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "User profiles and base metrics."
+    },
+    "workouts": {
+      "schema": "Workout",
+      "description": "Workout routines created by users."
+    },
+    "workouts/{workoutId}/exercises": {
+      "schema": "WorkoutExercise",
+      "description": "Exercises within a specific workout routine."
+    },
+    "logs": {
+      "schema": "WorkoutLog",
+      "description": "Completed workout sessions."
+    },
+    "logs/{logId}/sets": {
+      "schema": "SetLog",
+      "description": "Individual sets recorded in a workout session."
+    },
+    "prs": {
+      "schema": "PersonalRecord",
+      "description": "User's best performances per exercise."
+    }
+  }
+}
