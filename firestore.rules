@@ -92,6 +92,11 @@ service cloud.firestore {
       }
     }
 
+    // Support collectionGroup queries for sets
+    match /{path=**}/sets/{setId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
     // --- PRs ---
     match /prs/{prId} {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
